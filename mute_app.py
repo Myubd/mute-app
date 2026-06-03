@@ -41,7 +41,7 @@ C_BORDER    = "#E2E5EA"
 C_TEXT      = "#1A1D23"
 C_MUTED_TXT = "#7A8190"
 C_ACCENT    = "#3B82F6"
-C_CAPTURE   = "#EFF6FF"   # キャプチャ待機中の入力欄背景
+C_CAPTURE   = "#EFF6FF"   
 C_MUTE_ON   = "#EF4444"
 C_MUTE_OFF  = "#E8EDF4"
 C_BTN_SAVE  = "#3B82F6"
@@ -51,7 +51,6 @@ FONT_BOLD   = ("Segoe UI", 10, "bold")
 FONT_SMALL  = ("Segoe UI", 9)
 FONT_APP    = ("Segoe UI", 10)
 
-# 修飾キーのみが押されたときは無視するセット
 MODIFIER_KEYS = {"ctrl", "shift", "alt", "windows", "left ctrl", "right ctrl",
                  "left shift", "right shift", "left alt", "right alt"}
 
@@ -114,19 +113,14 @@ class AppMuteConfig:
 
 
 class KeyCaptureEntry(tk.Frame):
-    """
-    クリックするとキャプチャモードに入り、
-    押されたキーの組み合わせを自動で表示するカスタムウィジェット。
-    """
     def __init__(self, master, on_captured=None, **kwargs):
         super().__init__(master, bg=kwargs.pop("bg", C_SURFACE))
-        self.on_captured = on_captured  # キャプチャ完了時のコールバック
+        self.on_captured = on_captured 
         self._capturing = False
         self._hook = None
-        self._pressed = set()   # 現在押されている修飾キー
-        self._result = ""       # 確定したキー文字列
+        self._pressed = set()   
+        self._result = ""       
 
-        # 表示ラベル（入力欄に見せる）
         self._label = tk.Label(
             self,
             text="クリックして設定",
@@ -167,10 +161,8 @@ class KeyCaptureEntry(tk.Frame):
         self._label.config(text="キーを押してください", fg=C_ACCENT, bg=C_CAPTURE,
                            highlightbackground=C_ACCENT)
 
-        # keyboard ライブラリでフックを張る
         self._hook = keyboard.hook(self._on_key_event)
 
-        # Escapeでキャンセル
         self._label.winfo_toplevel().bind("<Escape>", self._cancel_capture, add=True)
 
     def _on_key_event(self, event):
@@ -180,22 +172,18 @@ class KeyCaptureEntry(tk.Frame):
         if event.event_type == keyboard.KEY_DOWN:
             name = event.name.lower()
 
-            # 修飾キーだけなら蓄積して待つ
             if name in MODIFIER_KEYS:
                 self._pressed.add(name)
-                # 表示をリアルタイム更新
                 preview = self._build_combo(name)
                 self._label.config(text=f"{preview}+...")
                 return
 
-            # 通常キーが来たら確定
             combo = self._build_combo(name)
             self._finish_capture(combo)
 
     def _build_combo(self, final_key: str) -> str:
         """修飾キー + 通常キーを keyboard ライブラリの形式に整形"""
         parts = []
-        # 優先順: ctrl → alt → shift
         for mod, aliases in [
             ("ctrl",  {"ctrl", "left ctrl", "right ctrl"}),
             ("alt",   {"alt", "left alt", "right alt"}),
@@ -248,7 +236,6 @@ class MultiAppMuteGUI:
         threading.Thread(target=self._check_update, daemon=True).start()
 
     def _build_ui(self):
-        # ヘッダー
         header = tk.Frame(self.root, bg=C_BG, padx=18, pady=12)
         header.pack(fill="x")
 
@@ -261,13 +248,12 @@ class MultiAppMuteGUI:
 
         tk.Frame(self.root, bg=C_BORDER, height=1).pack(fill="x")
 
-        # カラムヘッダー
         col = tk.Frame(self.root, bg=C_BG, padx=18, pady=6)
         col.pack(fill="x")
         tk.Label(col, text="アプリ名", font=FONT_SMALL, fg=C_MUTED_TXT, bg=C_BG, width=18, anchor="w").pack(side="left")
         tk.Label(col, text="ショートカット（クリックして設定）", font=FONT_SMALL, fg=C_MUTED_TXT, bg=C_BG).pack(side="left", padx=(4, 0))
 
-        # リスト
+
         list_frame = tk.Frame(self.root, bg=C_BG)
         list_frame.pack(fill="both", expand=True)
 
@@ -285,7 +271,6 @@ class MultiAppMuteGUI:
         self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self._canvas_window, width=e.width))
         self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(-1*(e.delta//120), "units"))
 
-        # ステータスバー
         tk.Frame(self.root, bg=C_BORDER, height=1).pack(fill="x")
         sb = tk.Frame(self.root, bg=C_BG, padx=14, pady=5)
         sb.pack(fill="x", side="bottom")
@@ -318,11 +303,10 @@ class MultiAppMuteGUI:
         tk.Label(inner, text=display_name, font=FONT_APP, fg=C_TEXT, bg=C_SURFACE,
                  width=18, anchor="w").pack(side="left")
 
-        # キャプチャ入力ウィジェット
         capture = KeyCaptureEntry(inner, bg=C_SURFACE)
         capture.pack(side="left", padx=(8, 6))
 
-        # 保存ボタン
+
         btn_save = tk.Button(
             inner, text="保存", font=FONT_SMALL, fg="#FFFFFF", bg=C_BTN_SAVE,
             relief="flat", padx=10, pady=3, cursor="hand2", bd=0,
@@ -331,7 +315,7 @@ class MultiAppMuteGUI:
         btn_save.pack(side="left", padx=(0, 10))
         btn_save.config(command=lambda: self._apply_shortcut(app_name, capture, btn_save, btn_mute))
 
-        # ミュートボタン
+
         btn_mute = tk.Button(
             inner, text="通常音量", font=FONT_SMALL, fg=C_MUTED_TXT, bg=C_MUTE_OFF,
             relief="flat", padx=10, pady=3, width=9, cursor="hand2", bd=0,
@@ -342,7 +326,6 @@ class MultiAppMuteGUI:
 
         tk.Frame(card, bg=C_BORDER, height=1).pack(fill="x", padx=14)
 
-        # キャプチャ完了時に自動で保存まで実行
         capture.on_captured = lambda combo, a=app_name, c=capture, bs=btn_save, bm=btn_mute: \
             self.root.after(0, lambda: self._apply_shortcut(a, c, bs, bm))
 
@@ -415,7 +398,6 @@ class MultiAppMuteGUI:
     def _check_update(self):
         import hashlib
         try:
-            # バージョン確認
             r = requests.get(VERSION_URL, timeout=5)
             if r.status_code != 200:
                 return
@@ -427,20 +409,17 @@ class MultiAppMuteGUI:
             if not current_exe.endswith(".exe"):
                 return
 
-            # exe と sha256 を並行取得
             exe_r  = requests.get(EXE_URL,    timeout=30)
             hash_r = requests.get(SHA256_URL, timeout=5)
             if exe_r.status_code != 200 or hash_r.status_code != 200:
                 return
 
-            # ハッシュ検証（不一致なら中止）
             expected = hash_r.text.strip().lower()
             actual   = hashlib.sha256(exe_r.content).hexdigest()
             if actual != expected:
                 print(f"[update] ハッシュ不一致。更新を中止しました。(expected={expected}, actual={actual})")
                 return
 
-            # 検証OKなら置き換え
             old = current_exe + ".old"
             if os.path.exists(old):
                 os.remove(old)
@@ -448,8 +427,10 @@ class MultiAppMuteGUI:
             with open(current_exe, "wb") as f:
                 f.write(exe_r.content)
 
-            messagebox.showinfo("自動更新", f"v{remote} へアップデートしました！\n再起動してください。")
+            messagebox.showinfo("自動更新", f"v{remote} へアップデートしました！\n自動で再起動します。")
             self.active_threads = False
+            import subprocess
+            subprocess.Popen([current_exe])
             os._exit(0)
         except Exception:
             pass
